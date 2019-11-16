@@ -3,8 +3,6 @@ import google.cloud.exceptions
 from functools import reduce
 from os import environ as env
 
-db = firestore.Client()
-
 bot_name = 'theteamsbot'
 
 def pipe(*fns):
@@ -35,17 +33,24 @@ get_mentions = pipe(
 )
 
 def create_team(chat_id, name, people):
+    db = firestore.Client()
     db.collection(f'teams::{chat_id}').add({
         'name': name,
         'people': people
     })
 
+def delete_team(chat_id, name):
+    db = firestore.Client()
+    for team in db.collection(f'teams::{chat_id}').where(u'name', u'==', name).stream():
+        team.reference.delete()
+
 def teams_on_chat(chat_id):
+    db = firestore.Client()
     return db.collection(f'teams::{chat_id}').stream()
 
 def send_message(chat_id, text):
-    import requests
-    requests.post(f'https://api.telegram.org/bot{env["TOKEN"]}/sendMessage', data={
+    from requests import post
+    post(f'https://api.telegram.org/bot{env["TOKEN"]}/sendMessage', data={
         'chat_id': chat_id,
         'text': text
     })
@@ -67,6 +72,15 @@ def command(chat_id, text):
         send_message(chat_id, f"Team {names[0]} was added!")
         return "ok"
     
+    if args[0] == '/rmteam':
+        if len(args) < 2:
+            return send_message(chat_id, "/rmteam usage: /rmteam @team_name or /rmteam team_name")
+        
+        team_name = erase_at_symbol(args[1])
+        delete_team(chat_id, team_name)
+        send_message(chat_id, f"Goodbye, {team_name}")
+        return "ok"
+    
     return "not ok"
 
 def api_post(req):
@@ -78,6 +92,8 @@ def api_post(req):
     data = req.get_json()
 
     message = data['message']
+    if not 'text' in message:
+        return "not ok"
     is_bot = message['from']['is_bot']
     text = message['text']
     chat_id = message['chat']['id']
