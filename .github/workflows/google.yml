@@ -1,2 +1,0 @@
-- name: Google Cloud Platform (GCP) CLI - gcloud
-  uses: actions-hub/gcloud@268.0.0
