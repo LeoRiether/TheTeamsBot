@@ -57,6 +57,10 @@ def send_message(chat_id, text):
     return "ok" # not even sure if it's really ok
 
 def command(chat_id, text):
+    """
+    Handles a command (string prefixed by '/')
+    lots of side-effects: calls send_message, create_team and delete_team
+    """
     args = split_whitespace(text)
 
     # Remove @theteamsbot from the command
@@ -91,6 +95,8 @@ def api_post(req):
 
     data = req.get_json()
 
+    if not 'message' in data:
+        return "wtf"
     message = data['message']
     if not 'text' in message:
         return "not ok"
